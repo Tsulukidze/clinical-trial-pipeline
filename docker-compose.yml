@@ -1,0 +1,54 @@
+# Two services: the Postgres database and the pipeline itself.
+# I read all credentials from the .env file, with safe defaults so
+# the project also starts without one.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ctp_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ctp_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ctp_password}
+      POSTGRES_DB: ${POSTGRES_DB:-clinical_trials}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Named volume: the data survives container restarts.
+      - pgdata:/var/lib/postgresql/data
+      # Postgres runs every .sql file from this folder automatically,
+      # but only on the very first start (when the volume is empty).
+      # So the schema is ready without any manual step.
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # The pipeline service waits until this check passes,
+      # so it never tries to connect to a database that is still starting.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ctp_user} -d ${POSTGRES_DB:-clinical_trials}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pipeline:
+    build: .
+    container_name: ctp_pipeline
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Inside docker the database host is the service name "db",
+      # not localhost.
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-ctp_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ctp_password}
+      POSTGRES_DB: ${POSTGRES_DB:-clinical_trials}
+    volumes:
+      # I mount the data folder so CSV files dropped into ./data/input
+      # on my machine are visible inside the container.
+      - ./data:/app/data
+    # By default the container just prints the CLI help.
+    # A real run looks like:
+    #   docker compose run --rm pipeline python -m pipeline ingest --source api --max-records 500
+    command: ["python", "-m", "pipeline", "--help"]
+
+volumes:
+  pgdata:
