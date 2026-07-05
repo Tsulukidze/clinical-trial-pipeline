@@ -20,11 +20,14 @@ import argparse
 import logging
 import sys
 
+from collections import Counter
+
 from pipeline import db, runs
 from pipeline.ingest.api_source import fetch_api_records
 from pipeline.ingest.csv_source import read_csv_records
 from pipeline.ingest.sql_source import read_sql_records
 from pipeline.load.staging import load_to_staging
+from pipeline.transform.transformer import transform_staged
 
 logger = logging.getLogger("pipeline")
 
@@ -89,6 +92,40 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_validate(args: argparse.Namespace) -> int:
+    """Dry run of the transform step: clean everything in staging and
+    print a report, but write nothing. Lets me check the data quality
+    of a run before loading it into the clinical tables."""
+    if not db.healthcheck():
+        logger.error("Database is not reachable. Is it running? (docker compose up -d db)")
+        return 1
+
+    valid = 0
+    rejected = 0
+    issue_counts: Counter[str] = Counter()
+
+    for record, issues in transform_staged(args.run_id):
+        if record is None:
+            rejected += 1
+        else:
+            valid += 1
+        for issue in issues:
+            issue_counts[f"{issue.field_name}: {issue.issue_type}"] += 1
+
+    print()
+    print("=== Validation report ===")
+    print(f"Valid records:    {valid}")
+    print(f"Rejected records: {rejected}")
+    print()
+    if issue_counts:
+        print("Data quality issues found:")
+        for name, count in issue_counts.most_common():
+            print(f"  {count:6d}  {name}")
+    else:
+        print("No data quality issues found.")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pipeline", description="Clinical trial data pipeline"
@@ -114,6 +151,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_ingest.add_argument("--url", help="SQLAlchemy connection URL (sql source)")
     p_ingest.add_argument("--query", help="SELECT query to run (sql source)")
     p_ingest.set_defaults(func=cmd_ingest)
+
+    p_validate = sub.add_parser(
+        "validate", help="clean staged records and print a report (writes nothing)"
+    )
+    p_validate.add_argument(
+        "--run-id", type=int, default=None,
+        help="check only one ingestion run (default: all of staging)",
+    )
+    p_validate.set_defaults(func=cmd_validate)
 
     return parser
 
