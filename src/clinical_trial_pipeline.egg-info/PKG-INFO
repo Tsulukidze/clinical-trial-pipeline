@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: clinical-trial-pipeline
+Version: 0.1.0
+Summary: Data pipeline for clinical trial data (technical challenge)
+Requires-Python: >=3.11
+Requires-Dist: pandas==2.2.3
+Requires-Dist: psycopg2-binary==2.9.10
+Requires-Dist: SQLAlchemy==2.0.36
+Requires-Dist: requests==2.32.3
+Requires-Dist: python-dotenv==1.0.1
+Requires-Dist: pytest==8.3.4
