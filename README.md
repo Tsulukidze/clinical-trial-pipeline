@@ -80,7 +80,7 @@ does not care where data came from.
 - Docker Desktop
 - Python 3.11 or newer
 
-That is all. PostgreSQL itself runs in Docker — no local installation.
+That is all. PostgreSQL itself runs in Docker — no local installation. I used image: postgres:16-alpine  version but you can use newer stable versions as well.
 
 ### Steps
 
@@ -124,7 +124,7 @@ python -m pipeline validate
 python -m pipeline process
 
 # Run the analytics
-python -m pipeline report
+python -m pipeline report   #outputs all 5 reports
 python -m pipeline report --name geography --top 5
 ```
 
@@ -227,9 +227,9 @@ Roughly 4.5 hours total:
 | Reading the task, choosing dataset, designing schema and architecture | ~1 h |
 | Ingestion layer (API client, CSV, SQL) + staging + run tracking | ~1 h |
 | Transform and validation (parsers, cleaners, DQ logging) | ~1 h |
-| Clinical loader + analytics queries | ~45 min |
+| Clinical loader + analytics queries | ~30 min |
 | Tests | ~30 min |
-| README and documentation | ~30 min |
+| README and documentation | ~40 min |
 
 Environment issues cost extra time (a local PostgreSQL already using port
 5432 — solved by making the port configurable), which is reflected in the
