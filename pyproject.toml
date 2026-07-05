@@ -1,0 +1,24 @@
+# This file makes my project installable as a Python package.
+# I install it in "editable" mode with:  pip install -e .
+# After that, "python -m pipeline" works from anywhere, and code
+# changes take effect immediately (no reinstall needed).
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clinical-trial-pipeline"
+version = "0.1.0"
+description = "Data pipeline for clinical trial data (technical challenge)"
+requires-python = ">=3.11"
+# I keep the dependency list in requirements.txt (single source of truth)
+# and let setuptools read it from there.
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+# My package lives in the src/ folder, not in the project root.
+[tool.setuptools.packages.find]
+where = ["src"]
