@@ -22,3 +22,8 @@ dependencies = { file = ["requirements.txt"] }
 # My package lives in the src/ folder, not in the project root.
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# Pytest settings: where the tests are, and quiet-but-informative output.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
