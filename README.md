@@ -68,7 +68,7 @@ does not care where data came from.
 │   ├── transform/            cleaners, parsers, validation
 │   ├── load/                 staging loader, clinical loader
 │   └── analytics/            SQL reports
-└── tests/                    62 unit tests (no database needed)
+└── tests/                    unit tests 
 ```
 
 ---
@@ -94,7 +94,7 @@ cp .env.example .env
 # (Windows PowerShell:  Copy-Item .env.example .env)
 
 # IMPORTANT: if you already have PostgreSQL installed locally, port 5432
-# is taken. Open .env and change:  POSTGRES_PORT=5433
+# is taken. Open .env and change:  POSTGRES_PORT=5433 , in my case I already use POSTGRES_PORT=5433
 
 # 3. Start the database (first start also creates the schema automatically)
 docker compose up -d db
