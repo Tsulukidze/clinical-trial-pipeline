@@ -29,6 +29,7 @@ from pipeline.ingest.sql_source import read_sql_records
 from pipeline.load.staging import load_to_staging
 from pipeline.load.clinical_loader import process_staged
 from pipeline.transform.transformer import transform_staged
+from pipeline.analytics.queries import REPORTS, get_report, run_report
 
 logger = logging.getLogger("pipeline")
 
@@ -148,6 +149,49 @@ def cmd_process(args: argparse.Namespace) -> int:
     return 0
 
 
+def _print_table(columns: list[str], rows: list[tuple]) -> None:
+    """Print rows as a simple aligned text table. No extra libraries."""
+    if not rows:
+        print("  (no data)")
+        return
+    # Column width = the widest value in that column (or the header).
+    cells = [[("" if v is None else str(v)) for v in row] for row in rows]
+    widths = [
+        max(len(columns[i]), max(len(row[i]) for row in cells))
+        for i in range(len(columns))
+    ]
+    header = "  ".join(col.ljust(widths[i]) for i, col in enumerate(columns))
+    print(header)
+    print("-" * len(header))
+    for row in cells:
+        print("  ".join(row[i].ljust(widths[i]) for i in range(len(row))))
+
+
+def cmd_report(args: argparse.Namespace) -> int:
+    """Run the analytics queries and print the results."""
+    if not db.healthcheck():
+        logger.error("Database is not reachable. Is it running? (docker compose up -d db)")
+        return 1
+
+    if args.name:
+        report = get_report(args.name)
+        if report is None:
+            logger.error("Unknown report: %s. Available: %s",
+                         args.name, ", ".join(r.key for r in REPORTS))
+            return 1
+        selected = [report]
+    else:
+        selected = REPORTS  # no name given: run everything
+
+    for report in selected:
+        print()
+        print(f"=== {report.title} ===")
+        columns, rows = run_report(report, top=args.top)
+        _print_table(columns, rows)
+    print()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pipeline", description="Clinical trial data pipeline"
@@ -191,6 +235,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="process only one ingestion run (default: all of staging)",
     )
     p_process.set_defaults(func=cmd_process)
+
+    p_report = sub.add_parser("report", help="run analytics queries and print results")
+    p_report.add_argument(
+        "--name", default=None,
+        help="run one report only: type_phase, conditions, completion, "
+             "geography, timeline, enrollment (default: all)",
+    )
+    p_report.add_argument(
+        "--top", type=int, default=10,
+        help="row limit for top-N reports like conditions and geography (default 10)",
+    )
+    p_report.set_defaults(func=cmd_report)
 
     return parser
 
