@@ -27,6 +27,7 @@ from pipeline.ingest.api_source import fetch_api_records
 from pipeline.ingest.csv_source import read_csv_records
 from pipeline.ingest.sql_source import read_sql_records
 from pipeline.load.staging import load_to_staging
+from pipeline.load.clinical_loader import process_staged
 from pipeline.transform.transformer import transform_staged
 
 logger = logging.getLogger("pipeline")
@@ -126,6 +127,27 @@ def cmd_validate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_process(args: argparse.Namespace) -> int:
+    """Transform staged records and load them into the clinical tables.
+    This is the real run; `validate` is its dry-run twin."""
+    if not db.healthcheck():
+        logger.error("Database is not reachable. Is it running? (docker compose up -d db)")
+        return 1
+
+    try:
+        stats = process_staged(args.run_id)
+    except Exception:
+        logger.exception("Processing failed")
+        return 1
+
+    print()
+    print("=== Processing report ===")
+    print(f"Studies loaded:   {stats['loaded']}")
+    print(f"Records rejected: {stats['rejected']}")
+    print(f"Issues recorded:  {stats['issues']}  (see clinical.data_quality_issues)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pipeline", description="Clinical trial data pipeline"
@@ -160,6 +182,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="check only one ingestion run (default: all of staging)",
     )
     p_validate.set_defaults(func=cmd_validate)
+
+    p_process = sub.add_parser(
+        "process", help="transform staged records and load them into clinical tables"
+    )
+    p_process.add_argument(
+        "--run-id", type=int, default=None,
+        help="process only one ingestion run (default: all of staging)",
+    )
+    p_process.set_defaults(func=cmd_process)
 
     return parser
 
