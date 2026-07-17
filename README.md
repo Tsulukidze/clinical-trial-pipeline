@@ -4,7 +4,6 @@ A data pipeline that downloads clinical trial data, cleans and validates it,
 stores it in a normalized PostgreSQL database, and answers analytical
 questions about trials, conditions, interventions and locations.
 
-Built for the DE Technical Challenge.
 
 ---
 
