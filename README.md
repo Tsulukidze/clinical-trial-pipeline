@@ -40,10 +40,8 @@ The pipeline works in three stages:
 
 ### Dataset choice
 
-I use **Option 4: the ClinicalTrials.gov API v2** as the primary source
-(the "advanced" option, chosen to show API integration: pagination,
-retries, timeouts). The pipeline also ingests **Kaggle CSV exports
-(Options 1–3)** and **external SQL databases**, so all three source types
+I use the ClinicalTrials.gov API v2** as the primary source. The pipeline also ingests **Kaggle CSV exports
+** and **external SQL databases**, so multiple source types
 from the functional requirements are covered by one architecture: every
 source produces the same stream of records, and the rest of the pipeline
 does not care where data came from.
